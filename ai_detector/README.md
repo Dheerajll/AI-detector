@@ -86,6 +86,129 @@ python -m spacy download en_core_web_sm
 
 ---
 
+## Pre-trained Models
+
+Instead of training from scratch, you can download pre-trained models:
+
+### Download Pre-trained Model
+
+```bash
+# List available models
+python scripts/download_model.py --list
+
+# Download base model (recommended for most users)
+python scripts/download_model.py --model ai-detector-base
+
+# Download large model (better accuracy, slower)
+python scripts/download_model.py --model ai-detector-large
+
+# Download all models
+python scripts/download_model.py --all
+```
+
+### Available Models
+
+| Model | Size | Description | Use Case |
+|-------|------|-------------|----------|
+| `ai-detector-base` | ~450 MB | RoBERTa-base + statistical features | General purpose, fast inference |
+| `ai-detector-large` | ~1.2 GB | DeBERTa-v3 + hybrid features | Highest accuracy, research |
+| `ai-detector-multilingual` | ~1.1 GB | XLM-RoBERTa + features | Multi-language detection |
+
+**Note:** The model repositories (`your-org/ai-detector-*`) need to be published to HuggingFace Hub. Replace with actual repository IDs or host models locally.
+
+### Using Downloaded Model
+
+```python
+from ai_detector import AIDetector
+
+# Load pre-trained model
+detector = AIDetector.load("models/pretrained/ai-detector-base")
+
+# Analyze text
+result = detector.predict("Your text here...")
+print(result.ai_probability)
+```
+
+---
+
+## Training Your Own Model
+
+If you prefer to train your own model:
+
+### Step 1: Download and Prepare Dataset
+
+```bash
+# Download datasets automatically from HuggingFace
+python scripts/prepare_dataset.py --download-all
+
+# Verify dataset splits (no contamination)
+python scripts/prepare_dataset.py --verify-splits
+
+# Check dataset statistics
+python scripts/analyze_dataset.py --input data/processed/train.parquet
+```
+
+This downloads and processes:
+- **Human texts**: OpenWebText, RealNews, WritingPrompts, StackExchange, arXiv, student essays
+- **AI texts**: HC3 (ChatGPT), M4GT (GPT-J), MALD, AIGC Detection datasets
+
+Datasets are split by source/author to prevent train/test contamination.
+
+### Step 2: Train Model
+
+```bash
+# Train hybrid model (recommended)
+python scripts/train.py \
+    --data-dir data/processed \
+    --output-dir models/final \
+    --model-type hybrid \
+    --epochs 3 \
+    --batch-size 32
+
+# Train with custom settings
+python scripts/train.py \
+    --data-dir data/processed \
+    --output-dir models/my-model \
+    --transformer-model roberta-base \
+    --use-transformer \
+    --use-statistical \
+    --use-linguistic \
+    --calibration-method isotonic
+```
+
+### Step 3: Evaluate Model
+
+```bash
+# Evaluate on all test sets
+python scripts/evaluate.py \
+    --model-dir models/final \
+    --test-dir data/processed \
+    --output results/evaluation.json
+
+# Generate detailed report
+python scripts/evaluate.py \
+    --model-dir models/final \
+    --test-dir data/processed \
+    --detailed \
+    --output-dir results/
+```
+
+### Step 4: Upload to HuggingFace (Optional)
+
+To share your trained model:
+
+```bash
+# Login to HuggingFace
+huggingface-cli login
+
+# Upload model
+python scripts/upload_model.py \
+    --model-dir models/final \
+    --repo-id your-org/ai-detector-base
+```
+
+---
+
 ## Quick Start
 
 ### Python API

@@ -1,5 +1,5 @@
 ```
-# Python
+# Dependencies
 __pycache__/
 *.pyc
 *.pyo
@@ -8,9 +8,66 @@ __pycache__/
 env/
 venv/
 .venv/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
+.env
+.env.local
+.env.*
+.venv/
+venv/
+ENV/
+.env.bak
+.env.dev
+.env.prod
+.env.test
+.env.example
+.env.sample
+.env.template
+.env.defaults
+.env.local.example
+.env.staging
+.env.production
+.env.global
+.env.local
+.env.backup
+.env.save
+.env.old
+.env.tmp
+.env.swp
+.env.swo
+.env~
+*.env
+*.env~
+*.swp
+*.swo
+*~
+.#*
+.*.swp
+.*.swo
+.*~
+.~lock*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*$pyc.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 .coverage
 .coverage.*
 .cache
@@ -18,8 +75,15 @@ nosetests.xml
 coverage.xml
 *.cover
 *.log
+.git/modules/
 .pytest_cache/
-.mypy_cache/
+.hypothesis/
+.tox/
+.nox/
+.coverage*
+htmlcov/
+.coverage.xml
+.coverage.*
 
 # Distribution / packaging
 .Python
@@ -44,6 +108,10 @@ MANIFEST
 *.manifest
 *.spec
 
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -56,7 +124,6 @@ coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
-.pytest_cache/
 
 # Translations
 *.mo
@@ -75,7 +142,7 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
+# Sphinx documentation docs/_build/
 docs/_build/
 
 # PyBuilder
@@ -110,8 +177,8 @@ celerybeat.pid
 env/
 venv/
 ENV/
-env.bak/
-venv.bak/
+env.bak
+venv.bak
 
 # Spyder project settings
 .spyderproject
@@ -131,9 +198,12 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# IDE
+# IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # OS generated files
 .DS_Store
@@ -143,4 +213,8 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+Thumbs.db:encryptable
+desktop.ini
+*.nib
+*~.nib
 ```
