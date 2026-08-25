@@ -24,7 +24,28 @@ Always interpret results with caution and consider uncertainty estimates.
 - **Uncertainty Estimation**: Identifies when predictions are unreliable
 - **Explainability**: Provides feature-level evidence for each prediction
 - **Chunk Analysis**: Handles long documents with section-by-section analysis
+- **PDF Document Analysis**: Analyzes PDFs (theses, reports, papers) with structural feature extraction
 - **Low False-Positive Focus**: Optimized to minimize wrongful accusations
+
+### PDF Analysis Feature
+
+The framework includes specialized support for analyzing PDF documents such as:
+- Educational reports
+- Academic theses and dissertations  
+- Research papers
+- Technical documentation
+
+**PDF-specific capabilities:**
+- Automatic text extraction from PDF files
+- Section/chapter detection and analysis
+- Academic structure identification (abstract, intro, methodology, etc.)
+- Citation pattern analysis
+- Figure/table mention tracking
+- Document flow and coherence analysis
+- Section-level AI probability estimation
+- Detection of mixed authorship within documents
+
+See [PDF Analysis](#pdf-analysis) for detailed usage.
 
 ### What Makes This Different
 
@@ -120,15 +141,181 @@ print(result.to_dict())
 # Analyze text directly
 python -m ai_detector predict --text "Your text here"
 
-# Analyze file
+# Analyze text file
 python -m ai_detector predict --file essay.txt
 
-# Batch process directory
+# Analyze PDF document (thesis, report, paper)
+python -m ai_detector predict --file thesis.pdf
+
+# Batch process directory (text files only)
 python -m ai_detector batch --input-dir ./documents --output results.json
+
+# Batch process including PDFs
+python -m ai_detector batch --input-dir ./documents --output results.json --include-pdf
 
 # With chunk analysis for long documents
 python -m ai_detector predict --file long_document.txt --chunk-analysis
 ```
+
+---
+
+## PDF Analysis
+
+### Overview
+
+The PDF analyzer extracts and analyzes structural features from academic and technical documents to detect AI-generated content. It examines:
+
+1. **Document Structure**: Sections, headings, hierarchy depth
+2. **Academic Elements**: Abstract, introduction, methodology, results, discussion, conclusion, references
+3. **Citation Patterns**: Density, format consistency
+4. **Content Flow**: Topic coherence between sections, transition quality
+5. **Technical Depth**: Specific details, numbers, methodology descriptions
+6. **Generic Phrases**: Overuse of stock academic phrases common in AI writing
+
+### Python API for PDFs
+
+```python
+from ai_detector import AIDetector, PDFAnalyzer, analyze_pdf
+
+# Load detector
+detector = AIDetector.load("models/final")
+
+# Create PDF analyzer with integrated AI detector
+pdf_analyzer = PDFAnalyzer(ai_detector=detector)
+
+# Analyze a PDF document
+result = pdf_analyzer.analyze("path/to/thesis.pdf", run_ai_detection=True)
+
+# View results
+print(f"Total pages: {result.total_pages}")
+print(f"Total words: {result.total_words}")
+print(f"Overall AI probability: {result.overall_ai_probability:.2%}")
+print(f"Classification: {result.overall_classification}")
+
+# Section-level analysis
+for section in result.section_classifications:
+    print(f"\n{section['section_title']}:")
+    print(f"  AI Probability: {section['ai_probability']:.2%}")
+    print(f"  Classification: {section['classification']}")
+
+# Structural evidence
+print("\nStructural Evidence:")
+for evidence in result.structural_evidence:
+    print(f"  - {evidence['feature']}: {evidence['observation']} ({evidence['direction']})")
+
+# Flow analysis
+print("\nFlow Analysis:")
+print(f"  Topic Coherence: {result.flow_analysis['topic_coherence']:.2f}")
+print(f"  Generic Phrase Density: {result.flow_analysis['generic_phrase_density']:.1f}/1000 words")
+print(f"  Technical Depth: {result.flow_analysis['technical_depth']:.1f}")
+
+# Convert to dictionary for JSON export
+result_dict = result.to_dict()
+```
+
+### Using the Convenience Function
+
+```python
+from ai_detector import analyze_pdf
+
+# Quick analysis without loading detector first
+result = analyze_pdf("document.pdf", ai_detector=None)
+
+# With detector for section-level AI classification
+from ai_detector import AIDetector
+detector = AIDetector.load("models/final")
+result = analyze_pdf("document.pdf", ai_detector=detector)
+```
+
+### Example PDF Analysis Output
+
+```json
+{
+  "file_path": "thesis.pdf",
+  "total_pages": 45,
+  "total_words": 12500,
+  "extraction_quality": "high",
+  "warnings": [],
+  "num_sections": 8,
+  "structural_features": {
+    "num_sections": 8,
+    "has_abstract": true,
+    "has_introduction": true,
+    "has_methodology": true,
+    "has_results": true,
+    "has_discussion": true,
+    "has_conclusion": true,
+    "has_references": true,
+    "citation_density": 18.5,
+    "heading_style_consistency": 0.92,
+    "transition_quality": 0.78,
+    "topic_coherence_between_sections": 0.35
+  },
+  "overall_ai_probability": 0.23,
+  "overall_classification": "likely_human",
+  "section_classifications": [
+    {"section_title": "Abstract", "word_count": 250, "ai_probability": 0.15, "classification": "likely_human"},
+    {"section_title": "Introduction", "word_count": 1800, "ai_probability": 0.21, "classification": "likely_human"},
+    {"section_title": "Methodology", "word_count": 3200, "ai_probability": 0.18, "classification": "likely_human"},
+    {"section_title": "Results", "word_count": 2800, "ai_probability": 0.35, "classification": "uncertain"},
+    {"section_title": "Discussion", "word_count": 2500, "ai_probability": 0.28, "classification": "uncertain"},
+    {"section_title": "Conclusion", "word_count": 800, "ai_probability": 0.22, "classification": "likely_human"}
+  ],
+  "structural_evidence": [
+    {"feature": "academic_structure", "observation": "Complete academic structure (6/6 elements)", "direction": "human-like", "strength": 0.3},
+    {"feature": "citation_density", "observation": "High citation density (18.5/1000 words)", "direction": "human-like", "strength": 0.4},
+    {"feature": "topic_coherence", "observation": "Good topic coherence between sections", "direction": "human-like", "strength": 0.3}
+  ],
+  "flow_analysis": {
+    "topic_coherence": 0.35,
+    "generic_phrase_density": 8.2,
+    "generic_phrase_is_high": false,
+    "cross_section_repetition": 0.12,
+    "technical_depth": 18.5
+  }
+}
+```
+
+### Interpreting PDF Analysis Results
+
+#### Structural Features Indicating Human Authorship
+
+| Feature | Human-like Pattern | AI-like Pattern |
+|---------|-------------------|-----------------|
+| Academic Structure | Complete (abstract through references) | Missing key sections |
+| Citation Density | >15 per 1000 words | <5 per 1000 words |
+| Citation Consistency | Single dominant format | Mixed formats |
+| Topic Coherence | 0.25-0.45 keyword overlap | <0.1 or >0.6 |
+| Technical Depth | High (specific numbers, methods) | Low (vague descriptions) |
+| Generic Phrases | <10 per 1000 words | >15 per 1000 words |
+| Section Balance | Varied lengths | Uniform lengths |
+
+#### Detecting Mixed Authorship
+
+When `section_classifications` show varying probabilities across sections:
+
+```
+Section 1 (Intro):     0.15 - likely_human
+Section 2 (Methods):   0.22 - likely_human  
+Section 3 (Results):   0.68 - uncertain (leaning AI)
+Section 4 (Discussion): 0.72 - likely_ai
+Section 5 (Conclusion): 0.31 - uncertain
+```
+
+This pattern may indicate:
+- Human wrote core sections, AI assisted with discussion
+- Different authors contributed different sections
+- AI-generated text was lightly edited in some sections
+
+**Important**: This is NOT proof of authorship. Use as an investigative tool only.
+
+### Limitations of PDF Analysis
+
+- **Scanned PDFs**: Image-based PDFs require OCR; extraction may fail
+- **Complex Layouts**: Multi-column, tables, figures may extract poorly
+- **Non-Academic Documents**: Analysis tuned for academic structure
+- **Language**: Currently optimized for English documents
+- **Reference Extraction**: Citation patterns vary by field
 
 ---
 

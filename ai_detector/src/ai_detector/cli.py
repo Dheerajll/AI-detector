@@ -74,6 +74,25 @@ def cmd_predict(args):
         if not file_path.exists():
             print(json.dumps({"error": f"File not found: {args.file}"}), indent=2)
             return 1
+        
+        # Check if PDF
+        if file_path.suffix.lower() == '.pdf':
+            # Use PDF analyzer
+            if not hasattr(detector, 'pdf_analyzer') or detector.pdf_analyzer is None:
+                try:
+                    from .pdf_analyzer import PDFAnalyzer
+                    detector.pdf_analyzer = PDFAnalyzer(ai_detector=detector)
+                except ImportError:
+                    print(json.dumps({
+                        "error": "PDF support not available. Install PyMuPDF, pdfplumber, or PyPDF2.",
+                        "classification": "unknown"
+                    }), indent=2)
+                    return 1
+            
+            result = detector.pdf_analyzer.analyze(file_path, run_ai_detection=True)
+            print(json.dumps(result.to_dict(), indent=2))
+            return 0
+        
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
     else:
@@ -117,6 +136,16 @@ def cmd_batch(args):
         logger.error(f"Failed to load detector: {e}")
         return 1
     
+    # Initialize PDF analyzer if needed
+    pdf_analyzer = None
+    if args.include_pdf:
+        try:
+            from .pdf_analyzer import PDFAnalyzer
+            pdf_analyzer = PDFAnalyzer(ai_detector=detector)
+        except ImportError:
+            logger.warning("PDF support not available. Install PyMuPDF, pdfplumber, or PyPDF2.")
+            args.include_pdf = False
+    
     # Find input files
     input_dir = Path(args.input_dir)
     if not input_dir.exists():
@@ -125,6 +154,9 @@ def cmd_batch(args):
     
     # Get all text files
     extensions = ['*.txt', '*.md', '*.json']
+    if args.include_pdf:
+        extensions.append('*.pdf')
+    
     files = []
     for ext in extensions:
         files.extend(input_dir.glob(ext))
@@ -139,6 +171,13 @@ def cmd_batch(args):
     results = {}
     for file_path in tqdm(files, desc="Processing files"):
         try:
+            # Handle PDFs
+            if file_path.suffix.lower() == '.pdf' and pdf_analyzer is not None:
+                result = pdf_analyzer.analyze(file_path, run_ai_detection=True)
+                results[str(file_path)] = result.to_dict()
+                continue
+            
+            # Handle text files
             with open(file_path, 'r', encoding='utf-8') as f:
                 text = f.read()
             
@@ -201,6 +240,8 @@ Note: This detector provides probabilistic assessments, not definitive proof.
     batch_parser.add_argument('--output', type=str, required=True,
                              help='Output JSON file path')
     batch_parser.add_argument('--model', '-m', type=str, help='Path to model directory')
+    batch_parser.add_argument('--include-pdf', action='store_true',
+                             help='Include PDF files in batch processing')
     batch_parser.set_defaults(func=cmd_batch)
     
     # Evaluate command
