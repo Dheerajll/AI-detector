@@ -38,21 +38,157 @@ A production-grade, research-quality framework for detecting AI-generated text w
 
 ## Quick Start
 
+### Option A: Using Pre-trained Models (Coming Soon)
+
+**⚠️ IMPORTANT:** Official pre-trained models are NOT yet published. The download script contains placeholder repositories that will fail with 401/404 errors. This is expected behavior.
+
+You have two options:
+
+1. **Train your own model locally** (Recommended - see detailed steps below)
+2. **Find a community model** on HuggingFace and configure it yourself
+
+Once you have a valid model (trained or from HuggingFace):
+
 ```bash
-# 1. Install the package
-pip install ai-detector
+# Install the package
+pip install -e .
 
-# 2. Download pre-trained model
-python -m ai_detector download-model --model ai-detector-base
-
-# 3. Run detection
-python -m ai_detector predict --text "Your text here..."
+# Run detection with your trained model
+python -m ai_detector predict --text "Your text here..." --model-dir models/final
 
 # Or use Python API
 from ai_detector import AIDetector
-detector = AIDetector.load("models/pretrained/ai-detector-base")
+detector = AIDetector.load("models/final")  # Your trained model
 result = detector.predict("Your text here...")
 print(result)
+```
+
+### Option B: Train Your Own Model (Recommended)
+
+Complete step-by-step workflow:
+
+#### Step 1: Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/ai_detector.git
+cd ai_detector
+
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -e .
+```
+
+#### Step 2: Prepare Dataset
+
+```bash
+# Download all datasets (requires ~50GB disk space)
+python scripts/prepare_dataset.py --download-all
+
+# Or download specific sources
+python scripts/prepare_dataset.py --human-sources openwebtext,realnews
+python scripts/prepare_dataset.py --ai-sources hc3,m4gt
+
+# Inspect the prepared data
+python scripts/prepare_dataset.py --inspect
+```
+
+This creates:
+- Human writing from multiple domains (essays, news, academic, forums, technical)
+- AI-generated text from multiple models (GPT-3.5, GPT-4, GPT-J, etc.)
+- Proper train/validation/test splits with no contamination
+- Specialized test sets for robustness evaluation
+
+#### Step 3: Configure Training
+
+Edit `configs/config.yaml` to customize your training:
+
+```yaml
+model:
+  type: hybrid  # Options: hybrid, transformer, sklearn
+  
+training:
+  batch_size: 32
+  num_epochs: 10
+  learning_rate: 2e-5
+  max_false_positive_rate: 0.01  # Critical for reducing false alarms
+  
+calibration:
+  method: isotonic  # Options: isotonic, platt, temperature
+  
+features:
+  use_statistical: true
+  use_linguistic: true
+  use_neural: true
+```
+
+#### Step 4: Train the Model
+
+```bash
+# Train with GPU (recommended)
+python scripts/train.py \
+  --data-dir data/processed \
+  --output-dir models/final \
+  --config configs/config.yaml \
+  --gpu
+
+# Or train on CPU
+python scripts/train.py \
+  --data-dir data/processed \
+  --output-dir models/final
+```
+
+Training typically takes:
+- **Hybrid model**: 2-6 hours on GPU, 12-24 hours on CPU
+- **Transformer-only**: 1-3 hours on GPU, 6-12 hours on CPU
+- **Sklearn baseline**: 10-30 minutes on CPU
+
+#### Step 5: Evaluate the Model
+
+```bash
+# Comprehensive evaluation
+python scripts/evaluate.py \
+  --model-dir models/final \
+  --test-dir data/processed \
+  --output-dir results/
+
+# View results
+cat results/metrics.json
+```
+
+Key metrics to check:
+- **ROC-AUC**: Overall discrimination ability (>0.90 is good)
+- **False Positive Rate**: Should be <1% at your chosen threshold
+- **Calibration Error**: Lower is better (<0.05 is well-calibrated)
+- **Cross-model generalization**: Performance on unseen AI generators
+
+#### Step 6: Run Inference
+
+```bash
+# Single text prediction
+python -m ai_detector predict \
+  --text "Your text to analyze..." \
+  --model-dir models/final
+
+# From file
+python -m ai_detector predict \
+  --file essay.txt \
+  --model-dir models/final
+
+# PDF analysis (theses, reports)
+python -m ai_detector predict \
+  --file thesis.pdf \
+  --model-dir models/final \
+  --chunk-analysis
+
+# Batch processing
+python -m ai_detector batch \
+  --input-dir documents/ \
+  --output-dir predictions/ \
+  --model-dir models/final
 ```
 
 ---
@@ -106,17 +242,21 @@ python -c "from ai_detector import AIDetector; print('✓ Installation successfu
 
 ---
 
-## Option A: Using Pre-trained Models (Recommended)
+## Pre-trained Models (Coming Soon)
 
-### Available Pre-trained Models
+**⚠️ NOTICE:** Official pre-trained models are NOT yet published. The table below shows planned models. For now, you must train your own model using the workflow above.
 
-| Model | Size | Languages | Best For | Download Command |
-|-------|------|-----------|----------|------------------|
-| `ai-detector-base` | ~450MB | English | General purpose, fast inference | `--model ai-detector-base` |
-| `ai-detector-large` | ~1.2GB | English | Higher accuracy, critical applications | `--model ai-detector-large` |
-| `ai-detector-multilingual` | ~1.1GB | 10+ languages | Non-English text | `--model ai-detector-multilingual` |
+### Planned Model Releases
 
-### Step 1: Download Model
+| Model | Size | Languages | Best For | Status |
+|-------|------|-----------|----------|--------|
+| `ai-detector-base` | ~450MB | English | General purpose, fast inference | 🔜 Coming Soon |
+| `ai-detector-large` | ~1.2GB | English | Higher accuracy, critical applications | 🔜 Coming Soon |
+| `ai-detector-multilingual` | ~1.1GB | 10+ languages | Non-English text | 🔜 Coming Soon |
+
+### When Models Are Available
+
+Once pre-trained models are published, you will be able to:
 
 ```bash
 # Download specific model
@@ -125,40 +265,30 @@ python scripts/download_model.py --model ai-detector-base
 # List available models
 python scripts/download_model.py --list
 
-# Download to custom location
-python scripts/download_model.py --model ai-detector-base --output-dir ./my-models
+# Verify download
+python scripts/download_model.py --verify models/pretrained/ai-detector-base
 ```
 
-### Step 2: Verify Download
+### Using Community Models
 
-```bash
-python scripts/download_model.py --verify --model ai-detector-base
-```
+You can also find community-trained models on HuggingFace:
 
-Expected output:
-```
-✓ Model downloaded successfully
-✓ Checksum verified
-✓ Model architecture validated
-```
-
-### Step 3: Load and Use
-
-```python
-from ai_detector import AIDetector
-
-# Load pre-trained model
-detector = AIDetector.load("models/pretrained/ai-detector-base")
-
-# Run prediction
-result = detector.predict("Your text here...")
-print(f"AI Probability: {result['ai_probability']:.2%}")
-print(f"Classification: {result['classification']}")
-```
+1. Visit https://huggingface.co/models and search for "ai-detector" or "text-classification"
+2. Find a compatible model (look for RoBERTa/DeBERTa-based classifiers)
+3. Edit `scripts/download_model.py` to add the repository:
+   ```python
+   AVAILABLE_MODELS["community-model"] = {
+       "repo_id": "username/model-name",
+       "description": "Community model description",
+       "size_mb": 500,
+       "files": ["model.pt", "config.json", ...]
+   }
+   ```
+4. Run: `python scripts/download_model.py --model community-model`
 
 ---
 
-## Option B: Training Your Own Model
+## Training Your Own Model (Recommended)
 
 ### When to Train Your Own Model
 

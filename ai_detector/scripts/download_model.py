@@ -136,13 +136,36 @@ def download_model(
         return output_path
         
     except Exception as e:
-        print(f"\n✗ Error downloading model: {e}")
-        print("\nPossible solutions:")
-        print("1. Check your internet connection")
-        print("2. Verify the model repository exists on HuggingFace")
-        print("3. Try: huggingface-cli login (if model requires authentication)")
-        print("4. Use --force-download to retry")
-        return None
+        error_msg = str(e)
+        print(f"\n✗ Error downloading model: {error_msg}")
+        
+        if "404" in error_msg or "Repository Not Found" in error_msg or "401" in error_msg:
+            print("\n" + "=" * 60)
+            print("⚠️  TROUBLESHOOTING:")
+            print("   The model repository does not exist or is private.")
+            print("   This is EXPECTED - the placeholder repositories are not real.")
+            print("\n👉 NEXT STEPS TO TRAIN LOCALLY:")
+            print("   Step 1: Prepare dataset")
+            print("     python scripts/prepare_dataset.py --download-all")
+            print("\n   Step 2: Train model")
+            print("     python scripts/train.py --data-dir data/processed --output-dir models/final")
+            print("\n   Step 3: Use local model")
+            print("     python -m ai_detector predict --text '...' --model-dir models/final")
+            print("\n   Alternatively:")
+            print("   - Find a valid public model on huggingface.co")
+            print("   - Edit scripts/download_model.py to add the real repo_id")
+            print("=" * 60)
+        elif "authentication" in error_msg.lower() or "Invalid username" in error_msg:
+            print("\n🔐 Authentication Required:")
+            print("   Run: huggingface-cli login")
+            print("   Then retry the download.")
+        else:
+            print("\n💡 Possible solutions:")
+            print("   1. Check your internet connection")
+            print("   2. Verify the model repository exists: https://huggingface.co/" + repo_id)
+            print("   3. Run: huggingface-cli login (if private)")
+            
+        sys.exit(1)
 
 
 def list_available_models():
@@ -155,6 +178,25 @@ def list_available_models():
         print(f"  Size: ~{info['size_mb']} MB")
         print(f"  Repository: {info['repo_id']}")
         print()
+    
+    print("=" * 60)
+    print("⚠️  IMPORTANT NOTICE:")
+    print("    The repositories listed above are PLACEHOLDERS.")
+    print("    Official pre-trained models are NOT yet published.")
+    print("\n👉 HOW TO USE THIS SYSTEM:")
+    print("\n    OPTION A: Train Your Own Model (Recommended)")
+    print("      Step 1: Download datasets")
+    print("        python scripts/prepare_dataset.py --download-all")
+    print("\n      Step 2: Train the model")
+    print("        python scripts/train.py --data-dir data/processed --output-dir models/final")
+    print("\n      Step 3: Run inference")
+    print("        python -m ai_detector predict --text 'Your text here...' --model-dir models/final")
+    print("\n    OPTION B: Use a Community Model from HuggingFace")
+    print("      1. Find a compatible model at: https://huggingface.co/models")
+    print("      2. Note the full repo_id (e.g., 'username/model-name')")
+    print("      3. Edit this script (scripts/download_model.py) to add it to AVAILABLE_MODELS")
+    print("      4. Run: python scripts/download_model.py --model your-model-name")
+    print("=" * 60)
 
 
 def verify_model(model_path: Path) -> bool:
