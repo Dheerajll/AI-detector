@@ -1,0 +1,111 @@
+# Configuration for AI Text Detector
+
+# Model settings
+model:
+  # Transformer encoder for neural features
+  encoder_name: "roberta-base"  # Options: roberta-base, deberta-base, etc.
+  max_length: 512
+  use_gpu: true
+  
+# Preprocessing
+preprocessing:
+  min_tokens: 50        # Minimum tokens for reliable detection
+  max_tokens: 4096      # Maximum tokens before chunking
+  chunk_size: 512       # Tokens per chunk for long documents
+  chunk_overlap: 50     # Overlap between chunks
+  language: "en"        # Primary language supported
+  
+# Feature extraction
+features:
+  statistical:
+    use_perplexity: true
+    use_burstiness: true
+    use_vocabulary_diversity: true
+    use_ngram_repetition: true
+    use_sentence_length_stats: true
+    use_punctuation_distribution: true
+    
+  linguistic:
+    use_pos_tags: true
+    use_dependency_parses: true
+    use_clause_complexity: true
+    use_discourse_markers: true
+    
+  neural:
+    use_cls_embedding: true
+    use_token_embeddings: false  # More memory intensive
+    pooling: "mean"      # mean, max, or cls
+  
+# Classifier settings
+classifier:
+  type: "hybrid"         # Options: classical, transformer, hybrid
+  
+  classical:
+    type: "gradient_boosting"  # Options: logistic_regression, random_forest, gradient_boosting
+    n_estimators: 200
+    max_depth: 6
+    
+  transformer:
+    num_labels: 2
+    dropout: 0.1
+    fine_tune: true
+    
+  ensemble:
+    method: "stacking"   # Options: voting, stacking, weighted_average
+    weights:
+      classical: 0.3
+      transformer: 0.5
+      statistical: 0.2
+  
+# Calibration
+calibration:
+  method: "temperature_scaling"  # Options: temperature_scaling, isotonic, platt
+  validation_split: 0.15
+  target_false_positive_rate: 0.01
+  
+# Thresholds
+thresholds:
+  ai_threshold: 0.5           # Default threshold for AI classification
+  uncertainty_low: 0.3        # Below this: uncertain (human-leaning)
+  uncertainty_high: 0.7       # Above this: uncertain (AI-leaning)
+  confidence_high: 0.8        # High confidence threshold
+  confidence_low: 0.5         # Low confidence threshold
+  
+# Uncertainty estimation
+uncertainty:
+  enable_ood_detection: true
+  ood_method: "mahalanobis"   # Options: mahalanobis, entropy, ensemble_disagreement
+  min_confidence: 0.3         # Minimum confidence for non-uncertain classification
+  
+# Explainability
+explainability:
+  enable_shap: false          # SHAP is computationally expensive
+  top_features: 5             # Number of top features to report
+  
+# Evaluation
+evaluation:
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1
+    - roc_auc
+    - pr_auc
+    - brier_score
+    - expected_calibration_error
+  stratify_by:
+    - text_length
+    - domain
+    - ai_model
+    - editing_level
+    
+# Data paths
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  models_dir: "models"
+  
+# Logging
+logging:
+  level: "INFO"
+  log_predictions: false      # Don't log input text by default (privacy)
