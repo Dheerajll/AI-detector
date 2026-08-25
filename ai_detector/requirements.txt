@@ -9,8 +9,13 @@ spacy>=3.2.0
 pyyaml>=6.0
 tqdm>=4.62.0
 joblib>=1.1.0
+huggingface_hub>=0.16.0
+datasets>=2.14.0
 
 # PDF processing (optional, for PDF analysis feature)
 PyMuPDF>=1.21.0
 pdfplumber>=0.7.0
 PyPDF2>=3.0.0
+shap>=0.42.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
