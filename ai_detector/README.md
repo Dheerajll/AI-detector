@@ -1,122 +1,148 @@
-# AI Text Detector
+# AI-Generated Text Detector
 
-A robust, research-quality framework for detecting AI-generated text using a hybrid approach combining statistical features, linguistic analysis, and neural representations.
+A production-grade, research-quality framework for detecting AI-generated text with calibrated probabilities, uncertainty quantification, and explainability.
 
 ## ⚠️ Important Disclaimers
 
-**This is NOT a definitive authorship tool.** This detector provides **probabilistic assessments**, not proof of authorship. Key limitations:
+**This detector is probabilistic, not definitive:**
+- Results indicate likelihood, NOT proof of AI authorship
+- False positives CAN occur, especially on non-native English, formal writing, or highly edited text
+- Never use this as sole evidence for academic misconduct, hiring decisions, or legal matters
+- Short texts (<50 words) have high uncertainty
+- The model may not generalize to AI models released after training
 
-- **False positives occur**, especially on short texts, non-native English writing, or highly formal prose
-- **Performance degrades** on paraphrased or edited AI text
-- **Unseen AI models** may evade detection
-- **Never use alone** for high-stakes decisions (academic integrity, hiring, etc.)
-
-Always interpret results with caution and consider uncertainty estimates.
+**Ethical Use:**
+- Use as one input among many in decision-making
+- Always allow human appeal/review processes
+- Do not deploy without understanding false positive rates in your specific domain
+- Respect privacy: all processing happens locally by default
 
 ---
 
-## Features
+## Table of Contents
 
-### Core Capabilities
+1. [Quick Start](#quick-start)
+2. [Installation](#installation)
+3. [Option A: Using Pre-trained Models (Recommended)](#option-a-using-pre-trained-models)
+4. [Option B: Training Your Own Model](#option-b-training-your-own-model)
+5. [Basic Usage](#basic-usage)
+6. [Advanced Usage](#advanced-usage)
+7. [PDF/Document Analysis](#pdfdocument-analysis)
+8. [Understanding Output](#understanding-output)
+9. [Evaluation & Metrics](#evaluation--metrics)
+10. [Troubleshooting](#troubleshooting)
+11. [API Reference](#api-reference)
+12. [Contributing](#contributing)
 
-- **Hybrid Detection**: Combines statistical, linguistic, and neural features
-- **Probability Calibration**: Produces reliable probability estimates via temperature scaling/isotonic regression
-- **Uncertainty Estimation**: Identifies when predictions are unreliable
-- **Explainability**: Provides feature-level evidence for each prediction
-- **Chunk Analysis**: Handles long documents with section-by-section analysis
-- **PDF Document Analysis**: Analyzes PDFs (theses, reports, papers) with structural feature extraction
-- **Low False-Positive Focus**: Optimized to minimize wrongful accusations
+---
 
-### PDF Analysis Feature
+## Quick Start
 
-The framework includes specialized support for analyzing PDF documents such as:
-- Educational reports
-- Academic theses and dissertations  
-- Research papers
-- Technical documentation
+```bash
+# 1. Install the package
+pip install ai-detector
 
-**PDF-specific capabilities:**
-- Automatic text extraction from PDF files
-- Section/chapter detection and analysis
-- Academic structure identification (abstract, intro, methodology, etc.)
-- Citation pattern analysis
-- Figure/table mention tracking
-- Document flow and coherence analysis
-- Section-level AI probability estimation
-- Detection of mixed authorship within documents
+# 2. Download pre-trained model
+python -m ai_detector download-model --model ai-detector-base
 
-See [PDF Analysis](#pdf-analysis) for detailed usage.
+# 3. Run detection
+python -m ai_detector predict --text "Your text here..."
 
-### What Makes This Different
-
-| Simple Detectors | This Framework |
-|-----------------|----------------|
-| Single feature (perplexity) | Multiple complementary feature families |
-| Raw scores as probabilities | Properly calibrated probabilities |
-| Binary output | Three-way classification + uncertainty |
-| No explanations | Feature-level evidence provided |
-| Fails on long docs | Chunked analysis with aggregation |
-| Untuned thresholds | Threshold selection for target FPR |
+# Or use Python API
+from ai_detector import AIDetector
+detector = AIDetector.load("models/pretrained/ai-detector-base")
+result = detector.predict("Your text here...")
+print(result)
+```
 
 ---
 
 ## Installation
 
+### Prerequisites
+
+- Python 3.9+ 
+- pip or conda
+- 4GB+ RAM (8GB+ recommended for transformer models)
+- Optional: CUDA GPU for faster inference
+
+### Step 1: Clone Repository
+
 ```bash
-# Clone repository
-cd ai_detector
-
-# Install dependencies
-pip install -e .
-
-# For development/testing
-pip install -e ".[dev]"
-
-# Download spaCy model (optional, for linguistic features)
-python -m spacy download en_core_web_sm
+git clone https://github.com/your-org/ai-detector.git
+cd ai-detector
 ```
 
-### Requirements
+### Step 2: Create Virtual Environment
 
-- Python 3.9+
-- PyTorch 1.9+
-- Transformers 4.15+
-- scikit-learn 1.0+
-- spaCy 3.2+ (optional)
+```bash
+# Using venv
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+
+# Or using conda
+conda create -n ai-detector python=3.10
+conda activate ai-detector
+```
+
+### Step 3: Install Dependencies
+
+```bash
+# Install core dependencies
+pip install -e .
+
+# Or install with optional features
+pip install -e ".[dev]"      # Development tools
+pip install -e ".[pdf]"      # PDF analysis support
+pip install -e ".[all]"      # All optional features
+```
+
+### Step 4: Verify Installation
+
+```bash
+python -c "from ai_detector import AIDetector; print('✓ Installation successful')"
+```
 
 ---
 
-## Pre-trained Models
+## Option A: Using Pre-trained Models (Recommended)
 
-Instead of training from scratch, you can download pre-trained models:
+### Available Pre-trained Models
 
-### Download Pre-trained Model
+| Model | Size | Languages | Best For | Download Command |
+|-------|------|-----------|----------|------------------|
+| `ai-detector-base` | ~450MB | English | General purpose, fast inference | `--model ai-detector-base` |
+| `ai-detector-large` | ~1.2GB | English | Higher accuracy, critical applications | `--model ai-detector-large` |
+| `ai-detector-multilingual` | ~1.1GB | 10+ languages | Non-English text | `--model ai-detector-multilingual` |
+
+### Step 1: Download Model
 
 ```bash
+# Download specific model
+python scripts/download_model.py --model ai-detector-base
+
 # List available models
 python scripts/download_model.py --list
 
-# Download base model (recommended for most users)
-python scripts/download_model.py --model ai-detector-base
-
-# Download large model (better accuracy, slower)
-python scripts/download_model.py --model ai-detector-large
-
-# Download all models
-python scripts/download_model.py --all
+# Download to custom location
+python scripts/download_model.py --model ai-detector-base --output-dir ./my-models
 ```
 
-### Available Models
+### Step 2: Verify Download
 
-| Model | Size | Description | Use Case |
-|-------|------|-------------|----------|
-| `ai-detector-base` | ~450 MB | RoBERTa-base + statistical features | General purpose, fast inference |
-| `ai-detector-large` | ~1.2 GB | DeBERTa-v3 + hybrid features | Highest accuracy, research |
-| `ai-detector-multilingual` | ~1.1 GB | XLM-RoBERTa + features | Multi-language detection |
+```bash
+python scripts/download_model.py --verify --model ai-detector-base
+```
 
-**Note:** The model repositories (`your-org/ai-detector-*`) need to be published to HuggingFace Hub. Replace with actual repository IDs or host models locally.
+Expected output:
+```
+✓ Model downloaded successfully
+✓ Checksum verified
+✓ Model architecture validated
+```
 
-### Using Downloaded Model
+### Step 3: Load and Use
 
 ```python
 from ai_detector import AIDetector
@@ -124,671 +150,738 @@ from ai_detector import AIDetector
 # Load pre-trained model
 detector = AIDetector.load("models/pretrained/ai-detector-base")
 
-# Analyze text
+# Run prediction
 result = detector.predict("Your text here...")
-print(result.ai_probability)
+print(f"AI Probability: {result['ai_probability']:.2%}")
+print(f"Classification: {result['classification']}")
 ```
 
 ---
 
-## Training Your Own Model
+## Option B: Training Your Own Model
 
-If you prefer to train your own model:
+### When to Train Your Own Model
 
-### Step 1: Download and Prepare Dataset
+- You have domain-specific data (medical, legal, technical)
+- You need to detect new AI models not in our training set
+- You want to optimize for specific false-positive rates
+- You have labeled data from your organization
+
+### Complete Training Workflow
+
+#### Step 1: Prepare Dataset
 
 ```bash
-# Download datasets automatically from HuggingFace
+# Download all datasets automatically
 python scripts/prepare_dataset.py --download-all
 
-# Verify dataset splits (no contamination)
-python scripts/prepare_dataset.py --verify-splits
+# Or download specific datasets
+python scripts/prepare_dataset.py \
+  --human-sources openwebtext,realnews,stackexchange \
+  --ai-sources hc3,m4gt,mald
 
-# Check dataset statistics
-python scripts/analyze_dataset.py --input data/processed/train.parquet
+# Preview dataset statistics
+python scripts/prepare_dataset.py --stats
 ```
 
-This downloads and processes:
-- **Human texts**: OpenWebText, RealNews, WritingPrompts, StackExchange, arXiv, student essays
-- **AI texts**: HC3 (ChatGPT), M4GT (GPT-J), MALD, AIGC Detection datasets
+**Dataset Sources:**
 
-Datasets are split by source/author to prevent train/test contamination.
+**Human Text:**
+- OpenWebText (Reddit links)
+- RealNews (news articles)
+- WritingPrompts (creative writing)
+- StackExchange (Q&A forums)
+- arXiv (academic abstracts)
+- Student Essays (educational writing)
 
-### Step 2: Train Model
+**AI Text:**
+- HC3 (ChatGPT responses)
+- M4GT (GPT-J generations)
+- MALD (multiple AI models)
+- AIGC Detection Dataset
+
+#### Step 2: Inspect Prepared Data
 
 ```bash
-# Train hybrid model (recommended)
-python scripts/train.py \
-    --data-dir data/processed \
-    --output-dir models/final \
-    --model-type hybrid \
-    --epochs 3 \
-    --batch-size 32
+# View dataset splits
+python scripts/prepare_dataset.py --inspect
 
-# Train with custom settings
-python scripts/train.py \
-    --data-dir data/processed \
-    --output-dir models/my-model \
-    --transformer-model roberta-base \
-    --use-transformer \
-    --use-statistical \
-    --use-linguistic \
-    --calibration-method isotonic
+# Check class balance
+python scripts/prepare_dataset.py --balance-report
 ```
 
-### Step 3: Evaluate Model
+Expected directory structure:
+```
+data/
+├── raw/              # Downloaded raw datasets
+├── processed/        # Cleaned and split data
+│   ├── train.parquet
+│   ├── val.parquet
+│   ├── test_in_dist.parquet
+│   ├── test_unseen_models.parquet
+│   ├── test_by_domain.parquet
+│   └── test_short_long.parquet
+└── README.md         # Dataset documentation
+```
+
+#### Step 3: Configure Training
+
+Create or modify `configs/config.yaml`:
+
+```yaml
+training:
+  model_type: "hybrid"  # hybrid, transformer, sklearn
+  random_seed: 42
+  
+  # Data paths
+  train_file: "data/processed/train.parquet"
+  val_file: "data/processed/val.parquet"
+  
+  # Model configuration
+  transformer_model: "roberta-base"
+  max_length: 512
+  batch_size: 16
+  num_epochs: 10
+  learning_rate: 2e-5
+  
+  # Calibration
+  calibration_method: "isotonic"  # isotonic, platt, temperature
+  
+  # Threshold optimization
+  target_false_positive_rate: 0.01
+  
+  # Output
+  output_dir: "models/final"
+  save_best_only: true
+```
+
+#### Step 4: Train Model
 
 ```bash
-# Evaluate on all test sets
+# Basic training
+python scripts/train.py
+
+# With custom config
+python scripts/train.py --config configs/my_config.yaml
+
+# With GPU acceleration
+CUDA_VISIBLE_DEVICES=0 python scripts/train.py
+
+# Monitor training progress
+tensorboard --logdir models/final/logs
+```
+
+Training output:
+```
+Epoch 1/10: loss=0.623, val_loss=0.589, val_auc=0.847
+Epoch 2/10: loss=0.512, val_loss=0.501, val_auc=0.891
+...
+Epoch 10/10: loss=0.312, val_loss=0.298, val_auc=0.943
+
+✓ Training complete
+✓ Model saved to: models/final
+✓ Calibration applied: isotonic
+✓ Optimal threshold: 0.67 (FPR=0.01)
+```
+
+#### Step 5: Evaluate Model
+
+```bash
+# Full evaluation suite
+python scripts/evaluate.py --model-dir models/final
+
+# Evaluate on specific test set
 python scripts/evaluate.py \
-    --model-dir models/final \
-    --test-dir data/processed \
-    --output results/evaluation.json
+  --model-dir models/final \
+  --test-file data/processed/test_unseen_models.parquet
 
 # Generate detailed report
-python scripts/evaluate.py \
-    --model-dir models/final \
-    --test-dir data/processed \
-    --detailed \
-    --output-dir results/
+python scripts/evaluate.py --model-dir models/final --report full
 ```
 
-### Step 4: Upload to HuggingFace (Optional)
+Evaluation metrics include:
+- Accuracy, Precision, Recall, F1
+- ROC-AUC, PR-AUC
+- False Positive Rate, False Negative Rate
+- Brier Score, Expected Calibration Error
+- Confusion Matrix
+- Performance by domain, length, AI model
 
-To share your trained model:
+#### Step 6: Upload Model (Optional)
 
 ```bash
-# Login to HuggingFace
-huggingface-cli login
-
-# Upload model
+# Upload to HuggingFace Hub
 python scripts/upload_model.py \
-    --model-dir models/final \
-    --repo-id your-org/ai-detector-base
+  --model-dir models/final \
+  --repo-id your-username/ai-detector-custom \
+  --token hf_xxxxx
+
+# Dry run first
+python scripts/upload_model.py --model-dir models/final --dry-run
 ```
 
 ---
 
-## Quick Start
+## Basic Usage
+
+### Command Line Interface
+
+#### Single Text Prediction
+
+```bash
+# From command line argument
+python -m ai_detector predict --text "The quick brown fox jumps over the lazy dog."
+
+# From file
+python -m ai_detector predict --file essay.txt
+
+# From stdin
+cat essay.txt | python -m ai_detector predict --stdin
+
+# Custom output format
+python -m ai_detector predict --file essay.txt --format json
+python -m ai_detector predict --file essay.txt --format table
+```
+
+#### Batch Prediction
+
+```bash
+# Process multiple files
+python -m ai_detector batch --input-dir documents/ --output-dir results/
+
+# Process CSV file
+python -m ai_detector batch --input-csv texts.csv --output-csv predictions.csv
+
+# With progress bar
+python -m ai_detector batch --input-dir documents/ --show-progress
+```
 
 ### Python API
 
+#### Basic Prediction
+
 ```python
 from ai_detector import AIDetector
 
-# Load trained model
-detector = AIDetector.load("models/final")
+# Load model
+detector = AIDetector.load("models/pretrained/ai-detector-base")
 
-# Analyze text
-result = detector.predict("""
-    Artificial intelligence has transformed how we interact with technology.
-    Machine learning algorithms can now recognize patterns in data that were
-    previously invisible to traditional computing methods.
-""")
+# Simple prediction
+result = detector.predict("Your text here...")
 
-print(result.to_dict())
+print(f"AI Probability: {result['ai_probability']:.2%}")
+print(f"Human Probability: {result['human_probability']:.2%}")
+print(f"Classification: {result['classification']}")
+print(f"Confidence: {result['confidence']:.2%}")
 ```
 
-### Example Output
+#### Batch Prediction
 
-```json
-{
-    "classification": "likely_human",
-    "ai_probability": 0.23,
-    "human_probability": 0.77,
-    "confidence": 0.81,
-    "reliability": "high",
-    "warnings": [],
-    "evidence": [
-        {
-            "feature": "burstiness",
-            "direction": "human-like",
-            "strength": 0.72,
-            "value": 0.65
-        },
-        {
-            "feature": "type_token_ratio",
-            "direction": "human-like", 
-            "strength": 0.58,
-            "value": 0.52
-        }
-    ],
-    "num_tokens": 142,
-    "num_chunks": 1
-}
+```python
+texts = [
+    "First text to analyze...",
+    "Second text to analyze...",
+    "Third text to analyze..."
+]
+
+results = detector.predict_batch(texts)
+
+for i, result in enumerate(results):
+    print(f"Text {i+1}: {result['classification']} ({result['ai_probability']:.2%})")
 ```
 
-### CLI Usage
+#### With Custom Options
 
-```bash
-# Analyze text directly
-python -m ai_detector predict --text "Your text here"
-
-# Analyze text file
-python -m ai_detector predict --file essay.txt
-
-# Analyze PDF document (thesis, report, paper)
-python -m ai_detector predict --file thesis.pdf
-
-# Batch process directory (text files only)
-python -m ai_detector batch --input-dir ./documents --output results.json
-
-# Batch process including PDFs
-python -m ai_detector batch --input-dir ./documents --output results.json --include-pdf
-
-# With chunk analysis for long documents
-python -m ai_detector predict --file long_document.txt --chunk-analysis
+```python
+result = detector.predict(
+    text,
+    min_length=50,           # Minimum tokens for reliable prediction
+    max_length=10000,        # Maximum tokens before chunking
+    return_evidence=True,    # Include feature explanations
+    return_chunks=True       # Include chunk-level predictions
+)
 ```
 
 ---
 
-## PDF Analysis
+## Advanced Usage
 
-### Overview
+### Understanding Classifications
 
-The PDF analyzer extracts and analyzes structural features from academic and technical documents to detect AI-generated content. It examines:
+The detector returns one of five classifications:
 
-1. **Document Structure**: Sections, headings, hierarchy depth
-2. **Academic Elements**: Abstract, introduction, methodology, results, discussion, conclusion, references
-3. **Citation Patterns**: Density, format consistency
-4. **Content Flow**: Topic coherence between sections, transition quality
-5. **Technical Depth**: Specific details, numbers, methodology descriptions
-6. **Generic Phrases**: Overuse of stock academic phrases common in AI writing
+| Classification | Meaning | Action |
+|---------------|---------|--------|
+| `likely_ai` | High probability AI-generated | Review carefully |
+| `likely_human` | High probability human-written | Low concern |
+| `uncertain` | Model cannot decide reliably | Request more text or human review |
+| `too_short` | Insufficient text for analysis | Provide longer sample |
+| `out_of_distribution` | Text differs significantly from training data | Use with extreme caution |
 
-### Python API for PDFs
-
-```python
-from ai_detector import AIDetector, PDFAnalyzer, analyze_pdf
-
-# Load detector
-detector = AIDetector.load("models/final")
-
-# Create PDF analyzer with integrated AI detector
-pdf_analyzer = PDFAnalyzer(ai_detector=detector)
-
-# Analyze a PDF document
-result = pdf_analyzer.analyze("path/to/thesis.pdf", run_ai_detection=True)
-
-# View results
-print(f"Total pages: {result.total_pages}")
-print(f"Total words: {result.total_words}")
-print(f"Overall AI probability: {result.overall_ai_probability:.2%}")
-print(f"Classification: {result.overall_classification}")
-
-# Section-level analysis
-for section in result.section_classifications:
-    print(f"\n{section['section_title']}:")
-    print(f"  AI Probability: {section['ai_probability']:.2%}")
-    print(f"  Classification: {section['classification']}")
-
-# Structural evidence
-print("\nStructural Evidence:")
-for evidence in result.structural_evidence:
-    print(f"  - {evidence['feature']}: {evidence['observation']} ({evidence['direction']})")
-
-# Flow analysis
-print("\nFlow Analysis:")
-print(f"  Topic Coherence: {result.flow_analysis['topic_coherence']:.2f}")
-print(f"  Generic Phrase Density: {result.flow_analysis['generic_phrase_density']:.1f}/1000 words")
-print(f"  Technical Depth: {result.flow_analysis['technical_depth']:.1f}")
-
-# Convert to dictionary for JSON export
-result_dict = result.to_dict()
-```
-
-### Using the Convenience Function
+### Threshold Configuration
 
 ```python
-from ai_detector import analyze_pdf
-
-# Quick analysis without loading detector first
-result = analyze_pdf("document.pdf", ai_detector=None)
-
-# With detector for section-level AI classification
 from ai_detector import AIDetector
-detector = AIDetector.load("models/final")
-result = analyze_pdf("document.pdf", ai_detector=detector)
+
+# Load with custom threshold
+detector = AIDetector.load(
+    "models/final",
+    threshold=0.67,  # Custom threshold
+    fpr_target=0.01  # Target 1% false positive rate
+)
+
+# Or adjust after loading
+detector.set_threshold(0.75)  # More conservative
+detector.set_threshold(0.50)  # More sensitive
 ```
 
-### Example PDF Analysis Output
+### Chunking Long Documents
+
+```python
+result = detector.predict(
+    long_text,
+    chunk_strategy="sliding_window",  # or "sentence", "paragraph"
+    chunk_size=512,
+    chunk_overlap=50,
+    aggregation="weighted_average"
+)
+
+# Access chunk-level predictions
+for i, chunk_pred in enumerate(result['chunk_predictions']):
+    print(f"Chunk {i}: {chunk_pred['ai_probability']:.2%}")
+```
+
+### Uncertainty Quantification
+
+```python
+result = detector.predict(text, return_uncertainty=True)
+
+print(f"Epistemic Uncertainty: {result['uncertainty']['epistemic']:.3f}")
+print(f"Aleatoric Uncertainty: {result['uncertainty']['aleatoric']:.3f}")
+print(f"OOD Score: {result['uncertainty']['ood_score']:.3f}")
+
+if result['uncertainty']['total'] > 0.5:
+    print("⚠️ High uncertainty - treat prediction with caution")
+```
+
+### Explainability
+
+```python
+result = detector.predict(text, return_evidence=True)
+
+print("Evidence for prediction:")
+for evidence in result['evidence']:
+    print(f"  • {evidence['feature']}: {evidence['direction']} "
+          f"(strength: {evidence['strength']:.2f})")
+```
+
+Example output:
+```
+Evidence for prediction:
+  • token_predictability: AI-like (strength: 0.72)
+  • perplexity_variance: AI-like (strength: 0.65)
+  • syntactic_complexity: Human-like (strength: 0.41)
+  • lexical_diversity: Neutral (strength: 0.15)
+```
+
+### Domain Adaptation
+
+```python
+# Evaluate on specific domain
+from ai_detector import Evaluator
+
+evaluator = Evaluator(detector)
+report = evaluator.evaluate_by_domain(
+    test_data,
+    domains=['academic', 'creative', 'technical', 'casual']
+)
+
+print(report)
+```
+
+---
+
+## PDF/Document Analysis
+
+For analyzing educational reports, theses, and academic documents:
+
+### Installation
+
+```bash
+pip install ai-detector[pdf]
+```
+
+### Basic PDF Analysis
+
+```python
+from ai_detector import PDFAnalyzer, AIDetector
+
+# Initialize
+detector = AIDetector.load("models/pretrained/ai-detector-base")
+analyzer = PDFAnalyzer(ai_detector=detector)
+
+# Analyze PDF
+result = analyzer.analyze("thesis.pdf", run_ai_detection=True)
+
+print(f"Overall AI Probability: {result.overall_ai_probability:.2%}")
+print(f"Document Structure Score: {result.structure_score:.2f}")
+print(f"Flow Coherence: {result.flow_coherence:.2f}")
+```
+
+### Section-Level Analysis
+
+```python
+# Get section-by-section breakdown
+for section in result.section_classifications:
+    print(f"\n{section['section_title']}")
+    print(f"  AI Probability: {section['ai_probability']:.2%}")
+    print(f"  Word Count: {section['word_count']}")
+    print(f"  Citation Density: {section.get('citation_density', 'N/A')}")
+```
+
+### CLI for PDF
+
+```bash
+# Analyze single PDF
+python -m ai_detector predict --file thesis.pdf
+
+# Analyze with detailed report
+python -m ai_detector predict --file thesis.pdf --format json --output report.json
+
+# Batch analyze PDFs
+python -m ai_detector batch --input-dir theses/ --pattern "*.pdf" --output-dir results/
+```
+
+### Understanding PDF Results
+
+```python
+# Structural evidence
+print("Structural Evidence:")
+print(f"  Academic Completeness: {result.structure_evidence['academic_completeness']:.2f}")
+print(f"  Citation Consistency: {result.structure_evidence['citation_consistency']:.2f}")
+print(f"  Technical Depth: {result.structure_evidence['technical_depth']:.2f}")
+
+# Flow evidence
+print("\nFlow Evidence:")
+print(f"  Topic Coherence: {result.flow_evidence['topic_coherence']:.2f}")
+print(f"  Generic Phrases: {result.flow_evidence['generic_phrase_density']:.2f}")
+print(f"  Cross-section Repetition: {result.flow_evidence['repetition_score']:.2f}")
+```
+
+---
+
+## Understanding Output
+
+### Complete Output Schema
 
 ```json
 {
-  "file_path": "thesis.pdf",
-  "total_pages": 45,
-  "total_words": 12500,
-  "extraction_quality": "high",
+  "classification": "likely_ai",
+  "ai_probability": 0.91,
+  "human_probability": 0.09,
+  "confidence": 0.84,
+  "reliability": "medium",
+  "threshold_used": 0.67,
   "warnings": [],
-  "num_sections": 8,
-  "structural_features": {
-    "num_sections": 8,
-    "has_abstract": true,
-    "has_introduction": true,
-    "has_methodology": true,
-    "has_results": true,
-    "has_discussion": true,
-    "has_conclusion": true,
-    "has_references": true,
-    "citation_density": 18.5,
-    "heading_style_consistency": 0.92,
-    "transition_quality": 0.78,
-    "topic_coherence_between_sections": 0.35
+  "evidence": [
+    {
+      "feature": "token_predictability",
+      "direction": "AI-like",
+      "strength": 0.72,
+      "description": "Tokens show higher predictability than typical human writing"
+    },
+    {
+      "feature": "perplexity_variance",
+      "direction": "AI-like",
+      "strength": 0.65,
+      "description": "Low variance in sentence-level perplexity"
+    }
+  ],
+  "uncertainty": {
+    "epistemic": 0.12,
+    "aleatoric": 0.08,
+    "ood_score": 0.15,
+    "total": 0.23
   },
-  "overall_ai_probability": 0.23,
-  "overall_classification": "likely_human",
-  "section_classifications": [
-    {"section_title": "Abstract", "word_count": 250, "ai_probability": 0.15, "classification": "likely_human"},
-    {"section_title": "Introduction", "word_count": 1800, "ai_probability": 0.21, "classification": "likely_human"},
-    {"section_title": "Methodology", "word_count": 3200, "ai_probability": 0.18, "classification": "likely_human"},
-    {"section_title": "Results", "word_count": 2800, "ai_probability": 0.35, "classification": "uncertain"},
-    {"section_title": "Discussion", "word_count": 2500, "ai_probability": 0.28, "classification": "uncertain"},
-    {"section_title": "Conclusion", "word_count": 800, "ai_probability": 0.22, "classification": "likely_human"}
-  ],
-  "structural_evidence": [
-    {"feature": "academic_structure", "observation": "Complete academic structure (6/6 elements)", "direction": "human-like", "strength": 0.3},
-    {"feature": "citation_density", "observation": "High citation density (18.5/1000 words)", "direction": "human-like", "strength": 0.4},
-    {"feature": "topic_coherence", "observation": "Good topic coherence between sections", "direction": "human-like", "strength": 0.3}
-  ],
-  "flow_analysis": {
-    "topic_coherence": 0.35,
-    "generic_phrase_density": 8.2,
-    "generic_phrase_is_high": false,
-    "cross_section_repetition": 0.12,
-    "technical_depth": 18.5
+  "metadata": {
+    "text_length": 523,
+    "num_tokens": 412,
+    "processing_time_ms": 234,
+    "model_version": "ai-detector-base-v1.0"
   }
 }
 ```
 
-### Interpreting PDF Analysis Results
+### Interpreting Probabilities
 
-#### Structural Features Indicating Human Authorship
+**NOT a measure of certainty:**
+- `ai_probability: 0.91` does NOT mean "91% chance this is AI"
+- It means "this text shares 91% of patterns with AI training data"
 
-| Feature | Human-like Pattern | AI-like Pattern |
-|---------|-------------------|-----------------|
-| Academic Structure | Complete (abstract through references) | Missing key sections |
-| Citation Density | >15 per 1000 words | <5 per 1000 words |
-| Citation Consistency | Single dominant format | Mixed formats |
-| Topic Coherence | 0.25-0.45 keyword overlap | <0.1 or >0.6 |
-| Technical Depth | High (specific numbers, methods) | Low (vague descriptions) |
-| Generic Phrases | <10 per 1000 words | >15 per 1000 words |
-| Section Balance | Varied lengths | Uniform lengths |
+**Proper interpretation:**
+- Out of 100 similar texts, ~91 were AI-generated in our validation set
+- Always consider confidence and uncertainty scores
+- Never use as sole decision criterion
 
-#### Detecting Mixed Authorship
+### Confidence Levels
 
-When `section_classifications` show varying probabilities across sections:
-
-```
-Section 1 (Intro):     0.15 - likely_human
-Section 2 (Methods):   0.22 - likely_human  
-Section 3 (Results):   0.68 - uncertain (leaning AI)
-Section 4 (Discussion): 0.72 - likely_ai
-Section 5 (Conclusion): 0.31 - uncertain
-```
-
-This pattern may indicate:
-- Human wrote core sections, AI assisted with discussion
-- Different authors contributed different sections
-- AI-generated text was lightly edited in some sections
-
-**Important**: This is NOT proof of authorship. Use as an investigative tool only.
-
-### Limitations of PDF Analysis
-
-- **Scanned PDFs**: Image-based PDFs require OCR; extraction may fail
-- **Complex Layouts**: Multi-column, tables, figures may extract poorly
-- **Non-Academic Documents**: Analysis tuned for academic structure
-- **Language**: Currently optimized for English documents
-- **Reference Extraction**: Citation patterns vary by field
+| Confidence Range | Reliability | Recommended Action |
+|-----------------|-------------|-------------------|
+| 0.80 - 1.00 | High | Can inform decisions (with other evidence) |
+| 0.60 - 0.80 | Medium | Use as one input among many |
+| 0.40 - 0.60 | Low | Require human review |
+| 0.00 - 0.40 | Very Low | Treat as uncertain |
 
 ---
 
-## Architecture
+## Evaluation & Metrics
 
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│   Input     │────▶│ Preprocessing │────▶│   Feature   │
-│    Text     │     │  & Chunking   │     │ Extraction  │
-└─────────────┘     └──────────────┘     └──────┬──────┘
-                                                │
-         ┌──────────────────────────────────────┤
-         │                                      │
-         ▼                                      ▼
-┌─────────────────┐                   ┌─────────────────┐
-│ Statistical     │                   │ Neural          │
-│ Features        │                   │ Representations │
-│ - Perplexity    │                   │ - Transformer   │
-│ - Burstiness    │                   │   Embeddings    │
-│ - Vocabulary    │                   │                 │
-└────────┬────────┘                   └────────┬────────┘
-         │                                      │
-         ▼                                      ▼
-┌─────────────────────────────────────────────────────┐
-│              Hybrid Classifier                       │
-│   (Classical ML + Transformer Ensemble)             │
-└──────────────────────┬──────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│              Calibration Layer                       │
-│   (Temperature Scaling / Isotonic Regression)       │
-└──────────────────────┬──────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│           Uncertainty Estimation                     │
-│   - Entropy, OOD Detection, Ensemble Disagreement   │
-└──────────────────────┬──────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│              Explainability Module                   │
-│   - Feature Attribution, Evidence Summary           │
-└──────────────────────┬──────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────┐
-│                  Final Output                        │
-│   Classification + Probabilities + Confidence        │
-└─────────────────────────────────────────────────────┘
-```
-
----
-
-## Training Your Own Model
-
-### Step 1: Prepare Dataset
+### Running Evaluation
 
 ```bash
-# You need to provide:
-# - Human-written texts from diverse domains
-# - AI-generated texts from multiple model families
-# - Proper metadata (source, domain, AI model used)
+# Complete evaluation suite
+python scripts/evaluate.py --model-dir models/final --output-dir eval_results
 
-python scripts/prepare_dataset.py
+# Specific metrics
+python scripts/evaluate.py --model-dir models/final --metrics roc_auc,pr_auc,brier
+
+# By domain
+python scripts/evaluate.py --model-dir models/final --breakdown domain
+
+# By text length
+python scripts/evaluate.py --model-dir models/final --breakdown length
 ```
 
-See `scripts/prepare_dataset.py` for detailed data schema.
+### Key Metrics Explained
 
-### Step 2: Train Model
+| Metric | What It Measures | Why It Matters |
+|--------|-----------------|----------------|
+| **ROC-AUC** | Overall discrimination ability | Higher = better at separating AI/human |
+| **PR-AUC** | Performance on imbalanced data | Better than ROC-AUC when classes uneven |
+| **False Positive Rate** | % of human text flagged as AI | Critical for avoiding harm to humans |
+| **False Negative Rate** | % of AI text missed | Important for security applications |
+| **Brier Score** | Probability calibration quality | Lower = better calibrated probabilities |
+| **ECE** | Expected Calibration Error | Measures probability reliability |
 
-```bash
-python scripts/train.py \
-    --data-dir data/processed \
-    --output models/final \
-    --config configs/config.yaml
+### Evaluating Cross-Model Generalization
+
+```python
+from ai_detector import Evaluator
+
+evaluator = Evaluator(detector)
+
+# Test on unseen AI models
+unseen_results = evaluator.evaluate_on_unseen_models(
+    test_file="data/processed/test_unseen_models.parquet"
+)
+
+print(f"AUC on seen models: {unseen_results['seen_auc']:.3f}")
+print(f"AUC on unseen models: {unseen_results['unseen_auc']:.3f}")
+print(f"Generalization gap: {unseen_results['gap']:.3f}")
 ```
 
-### Step 3: Evaluate
+### Adversarial Robustness Testing
 
 ```bash
+# Test robustness to perturbations
 python scripts/evaluate.py \
-    --model models/final \
-    --data-dir data/processed \
-    --output eval_results.json
+  --model-dir models/final \
+  --robustness-tests synonym,reorder,paraphrase,spelling
+
+# Generate robustness report
+python scripts/evaluate.py --model-dir models/final --report robustness
 ```
 
-### Step 4: Predict
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### Issue: "Model not found"
 
 ```bash
-python scripts/predict.py \
-    --model models/final \
-    --text "Your text here"
+# Solution: Download model first
+python scripts/download_model.py --model ai-detector-base
+
+# Or specify correct path
+detector = AIDetector.load("/full/path/to/model")
 ```
 
----
+#### Issue: "CUDA out of memory"
 
-## Dataset Design
+```python
+# Solution: Use CPU or smaller model
+detector = AIDetector.load("models/pretrained/ai-detector-base", device="cpu")
 
-### Required Splits
-
-The training pipeline creates these evaluation sets:
-
-| Split | Purpose | Why It Matters |
-|-------|---------|----------------|
-| `train` | Model training | Main training data |
-| `val` | Calibration, threshold tuning | Prevents overfitting |
-| `test_in_dist` | In-distribution evaluation | Baseline performance |
-| `test_unseen_models` | Cross-model generalization | Tests if detector recognizes AI generally vs. memorizing specific models |
-| `test_unseen_topics` | Topic independence | Ensures detector doesn't learn topic markers |
-| `test_paraphrased` | Robustness to evasion | Tests resilience to paraphrasing attacks |
-| `test_edited` | Edited AI text | Real-world scenario where AI text is lightly edited |
-| `test_short` | Short text handling | Documents behavior on <100 token texts |
-| `test_long` | Long document handling | Tests chunking and aggregation |
-
-### Data Requirements
-
-**Human Data** (multiple domains):
-- Essays (student, professional)
-- News articles
-- Academic writing
-- Forum posts (Reddit, StackExchange)
-- Personal writing (blogs)
-- Technical documentation
-- Creative writing
-
-**AI Data** (multiple model families):
-- GPT-3.5/GPT-4 family
-- Claude family
-- PaLM/Gemini family
-- LLaMA family
-- Other open-source models
-
-### Critical: Proper Splitting
-
-**DO NOT randomly split!** Split by:
-- Source/document
-- Author (where available)
-- Generation model
-- Prompt/topic
-
-This prevents train/test contamination and gives realistic performance estimates.
-
----
-
-## Evaluation Metrics
-
-### Why Accuracy Alone Is Insufficient
-
-| Scenario | Accuracy | FPR | Problem |
-|----------|----------|-----|---------|
-| Always predict "human" on balanced test | 50% | 0% | Useless detector |
-| High accuracy but 10% FPR | 90% | 10% | Wrongfully accuses 1 in 10 innocent people |
-
-**We prioritize low false-positive rate (FPR)** because false accusations cause real harm.
-
-### Reported Metrics
-
-- **Accuracy**: Overall correctness
-- **Precision**: Of those flagged AI, how many actually are?
-- **Recall**: Of actual AI texts, how many detected?
-- **F1 Score**: Harmonic mean of precision/recall
-- **ROC-AUC**: Ranking quality across all thresholds
-- **PR-AUC**: Precision-recall tradeoff
-- **Brier Score**: Probability calibration quality
-- **Expected Calibration Error (ECE)**: How well confidence matches accuracy
-- **False Positive Rate**: % of human texts wrongly flagged as AI **(critical!)**
-- **False Negative Rate**: % of AI texts missed
-
-### Performance at Multiple Thresholds
-
-The system reports metrics at thresholds [0.1, 0.2, ..., 0.9] so you can choose based on your tolerance for false positives vs. false negatives.
-
----
-
-## Configuration
-
-### Key Settings (`configs/config.yaml`)
-
-```yaml
-# Minimum tokens for reliable detection
-preprocessing:
-  min_tokens: 50        # Below this: warn user
-  max_tokens: 4096      # Above this: chunk
-
-# Target false positive rate
-calibration:
-  target_false_positive_rate: 0.01  # 1% FPR target
-
-# Classification thresholds
-thresholds:
-  ai_threshold: 0.5           # Default decision boundary
-  uncertainty_low: 0.3        # Below: uncertain (human-leaning)
-  uncertainty_high: 0.7       # Above: uncertain (AI-leaning)
-  confidence_high: 0.8        # High confidence threshold
+# Or reduce batch size
+detector = AIDetector.load("models/pretrained/ai-detector-base", batch_size=4)
 ```
 
----
+#### Issue: "Text too short" warning
 
-## Understanding Results
+```python
+# Solution: Provide longer text or adjust minimum
+result = detector.predict(short_text, min_length=20)  # Default is 50
 
-### Classification Values
+# Or combine multiple samples
+combined_text = " ".join([text1, text2, text3])
+result = detector.predict(combined_text)
+```
 
-| Value | Meaning | Action |
-|-------|---------|--------|
-| `likely_ai` | AI probability > 0.7 | Consider AI origin possible |
-| `likely_human` | AI probability < 0.3 | Probably human-written |
-| `uncertain` | AI probability 0.3-0.7 OR low confidence | Cannot reliably classify |
+#### Issue: High false positives on non-native English
 
-### Reliability Levels
+```python
+# Solution: Use multilingual model
+detector = AIDetector.load("models/pretrained/ai-detector-multilingual")
 
-| Level | Confidence Range | Interpretation |
-|-------|-----------------|----------------|
-| `high` | ≥ 0.7 | Model is confident; results more trustworthy |
-| `medium` | 0.4-0.7 | Moderate confidence; interpret with caution |
-| `low` | < 0.4 | Low confidence; do not rely on classification |
+# Or adjust threshold for your domain
+detector.set_threshold(0.75)  # More conservative
+```
 
-### Warnings
+#### Issue: Slow inference
 
-Common warnings:
-- "Text has only X tokens" - Too short for reliable detection
-- "Input appears significantly different from training data" - OOD detection triggered
-- "Low confidence prediction" - Model uncertain
+```python
+# Solution: Enable batching
+results = detector.predict_batch(texts, batch_size=32)
 
----
+# Or use smaller model
+detector = AIDetector.load("models/pretrained/ai-detector-base")
 
-## Limitations
+# Or enable GPU
+detector = AIDetector.load("models/pretrained/ai-detector-large", device="cuda")
+```
 
-### Known Weaknesses
-
-1. **Short Texts**: <50 tokens provides insufficient signal
-2. **Paraphrased AI**: Sophisticated paraphrasing can evade detection
-3. **Unseen Models**: New AI models may have different signatures
-4. **Mixed Authorship**: Documents with both human and AI sections challenge the classifier
-5. **Non-Native English**: May increase false positives due to unusual patterns
-6. **Highly Formal Writing**: Can resemble AI patterns
-
-### What This Cannot Do
-
-- ❌ Prove authorship definitively
-- ❌ Detect all AI-generated text
-- ❌ Work reliably on very short texts
-- ❌ Handle code, math, or specialized notation well
-- ❌ Replace human judgment in high-stakes scenarios
-
----
-
-## Ethical Considerations
-
-### Appropriate Uses
-
-- ✅ Educational tool for understanding AI text characteristics
-- ✅ First-pass screening with human review
-- ✅ Research on AI text detection
-- ✅ Personal curiosity about text origins
-
-### Inappropriate Uses
-
-- ❌ Sole evidence for academic misconduct
-- ❌ Automated rejection of applications/submissions
-- ❌ Surveillance without consent
-- ❌ Discriminatory screening
-
-### Best Practices
-
-1. **Always include uncertainty estimates**
-2. **Set conservative thresholds for high-stakes decisions**
-3. **Require human review for any consequential action**
-4. **Be transparent about limitations**
-5. **Monitor false positive rates across demographics**
-
----
-
-## Running Tests
+### Getting Help
 
 ```bash
-# Run all tests
+# Show help for any command
+python -m ai_detector --help
+python -m ai_detector predict --help
+python scripts/train.py --help
+
+# Check system info
+python -c "from ai_detector import get_system_info; print(get_system_info())"
+
+# Report issues
+# Visit: https://github.com/your-org/ai-detector/issues
+```
+
+---
+
+## API Reference
+
+### AIDetector Class
+
+```python
+class AIDetector:
+    @classmethod
+    def load(cls, model_path: str, **kwargs) -> AIDetector
+    def predict(self, text: str, **options) -> Dict
+    def predict_batch(self, texts: List[str], **options) -> List[Dict]
+    def set_threshold(self, threshold: float) -> None
+    def get_threshold(self) -> float
+    def save(self, output_path: str) -> None
+```
+
+### Prediction Options
+
+```python
+detector.predict(
+    text,
+    min_length: int = 50,
+    max_length: int = 10000,
+    chunk_strategy: str = "sliding_window",
+    chunk_size: int = 512,
+    chunk_overlap: int = 50,
+    aggregation: str = "weighted_average",
+    return_evidence: bool = True,
+    return_uncertainty: bool = True,
+    return_chunks: bool = False,
+    device: str = None
+)
+```
+
+### PDFAnalyzer Class
+
+```python
+class PDFAnalyzer:
+    def __init__(self, ai_detector: AIDetector = None)
+    def analyze(self, pdf_path: str, run_ai_detection: bool = True) -> PDFAnalysisResult
+    def extract_text(self, pdf_path: str) -> ExtractedText
+    def analyze_structure(self, text: str) -> StructureAnalysis
+    def analyze_flow(self, text: str) -> FlowAnalysis
+```
+
+---
+
+## Contributing
+
+### Setting Up Development Environment
+
+```bash
+# Clone and install in dev mode
+git clone https://github.com/your-org/ai-detector.git
+cd ai-detector
+pip install -e ".[dev]"
+
+# Run tests
 pytest tests/ -v
 
-# With coverage
-pytest tests/ --cov=src/ai_detector --cov-report=html
+# Run linting
+flake8 src/
+black src/ --check
+mypy src/
+
+# Build documentation
+mkdocs serve
+```
+
+### Running Tests
+
+```bash
+# All tests
+pytest tests/ -v
 
 # Specific test file
 pytest tests/test_preprocessing.py -v
+
+# With coverage
+pytest tests/ --cov=ai_detector --cov-report=html
+
+# Integration tests
+pytest tests/integration/ -v
 ```
 
----
-
-## Project Structure
-
-```
-ai_detector/
-├── pyproject.toml          # Package configuration
-├── README.md               # This file
-├── requirements.txt        # Dependencies
-├── configs/
-│   └── config.yaml         # Default configuration
-├── data/
-│   ├── raw/                # Raw datasets (not included)
-│   ├── processed/          # Processed datasets (not included)
-│   └── README.md           # Data documentation
-├── models/                 # Trained models (created after training)
-├── src/ai_detector/
-│   ├── __init__.py
-│   ├── preprocessing.py    # Text preprocessing
-│   ├── features.py         # Feature extraction
-│   ├── classifiers.py      # ML models
-│   ├── calibration.py      # Probability calibration
-│   ├── inference.py        # Main detector class
-│   ├── uncertainty.py      # Uncertainty estimation
-│   ├── explainability.py   # Explanations
-│   ├── evaluation.py       # Metrics
-│   └── cli.py              # Command-line interface
-├── scripts/
-│   ├── prepare_dataset.py  # Data preparation
-│   ├── train.py            # Training script
-│   ├── evaluate.py         # Evaluation script
-│   └── predict.py          # Inference script
-└── tests/
-    ├── test_preprocessing.py
-    ├── test_features.py
-    ├── test_inference.py
-    └── test_evaluation.py
-```
-
----
-
-## Commands Summary
+### Code Style
 
 ```bash
-# 1. Install dependencies
-pip install -e .
+# Format code
+black src/ tests/ scripts/
 
-# 2. Prepare data (after collecting your datasets)
-python scripts/prepare_dataset.py
+# Sort imports
+isort src/ tests/ scripts/
 
-# 3. Train model
-python scripts/train.py --data-dir data/processed --output models/final
+# Type checking
+mypy src/
 
-# 4. Evaluate
-python scripts/evaluate.py --model models/final --data-dir data/processed
+# Linting
+flake8 src/ tests/ scripts/
+```
 
-# 5. Predict
-python -m ai_detector predict --text "Your text"
-# or
-python scripts/predict.py --model models/final --text "Your text"
+---
 
-# 6. Run tests
-pytest tests/ -v
+## Citation
+
+If you use this tool in your research, please cite:
+
+```bibtex
+@software{ai_detector_2024,
+  title = {AI-Generated Text Detector},
+  author = {Your Name and Contributors},
+  year = {2024},
+  url = {https://github.com/your-org/ai-detector}
+}
 ```
 
 ---
@@ -797,14 +890,22 @@ pytest tests/ -v
 
 MIT License - see LICENSE file for details.
 
-## Contributing
+---
 
-Contributions welcome! Please read CONTRIBUTING.md for guidelines.
+## Acknowledgments
 
-## Citation
-
-If you use this in research, please cite appropriately.
+This project builds upon research and datasets from:
+- HC3 Dataset (Hello ChatGPT)
+- M4GT Dataset (Massive Multi-Model GPT Text)
+- MALD Dataset (Machine-Authored Literature Detection)
+- OpenWebText, RealNews, and other open datasets
+- HuggingFace Transformers library
+- Scikit-learn calibration methods
 
 ---
 
-**Remember**: This tool provides probabilistic assessments, not definitive answers. Use responsibly.
+## Contact
+
+- GitHub Issues: https://github.com/your-org/ai-detector/issues
+- Email: your-email@example.com
+- Documentation: https://your-org.github.io/ai-detector
